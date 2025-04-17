@@ -24,6 +24,7 @@ namespace ErenshorREL
             ErenshorREL.RandomLootCommonNPCChance = ErenshorREL.context.config("1 - RandomLoot", "Common NPCS: Percent chance of a random loot", 3.0f, "The chance of adding an additional random drop. Acceptable Range <float> 0.0f-100.0f meaning 10.0f is 10% chance");
             ErenshorREL.RandomLootText = ErenshorREL.context.config("1 - RandomLoot", "Random Loot Text", "Mysterious forces have added a new treasure: ", "The text displayed when a new random item is added in addition to the item name and NPC name.");
             ErenshorREL.RandomLootDebug = ErenshorREL.context.config("1 - RandomLoot", "Debug Output", ErenshorREL.Toggle.Off, "Display debug messages and output of the random loot functions");
+            ErenshorREL.RandomLootRestrict = ErenshorREL.context.config("1 - RandomLoot", "Restricted Loot", "", "Display debug messages and output of the random loot functions");
         }
     }
 }

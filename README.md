@@ -32,6 +32,7 @@ Adds Postfix commands to ItemDatabase.Start() to create lists of items per level
 Adds Postfix commands to Character.DoDeath() to insert new random loot
 
 ### Changelog:
+- 2025-04-17 - Improved performance. Updated max item level range to match max character level.
 - 2024-09-20 - Fixed compatibility with other mods. Initial release.
 
 

@@ -13,6 +13,7 @@ using BepInEx.Configuration;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 /* Welcome to the Erenshor Random Epic Loot Mod! This mod will edit each NPC's loot table when they spawn based on configurable parameters.
  * The intent is to be similar to random loot servers like Everquest's Mischief or Teek rulesets. Rare NPCs should be able to drop similar power level loot from within their level range even if they wouldn't normally drop it.
@@ -27,7 +28,7 @@ namespace ErenshorREL
     {
 
         internal const string ModName = "ErenshorREL";
-        internal const string ModVersion = "0.0.2";
+        internal const string ModVersion = "0.0.3";
         internal const string ModDescription = "Erenshor Random Epic Loot";
         internal const string Author = "Brumdail";
         private const string ModGUID = Author + "." + ModName;
@@ -61,19 +62,7 @@ namespace ErenshorREL
 
         private void Update()
         {
-            int levelsAboveHardcap = 4;
-            //check config values and limit the range
-            if (ErenshorREL.RandomLootLevelsBelow.Value < 0) { ErenshorREL.RandomLootLevelsBelow.Value = 0; }
-            if (ErenshorREL.RandomLootLevelsBelow.Value > 100) { ErenshorREL.RandomLootLevelsBelow.Value = 100; }
-            if (ErenshorREL.RandomLootLevelsAbove.Value < 0) { ErenshorREL.RandomLootLevelsAbove.Value = 0; }
-            //don't allow users to configure item levels above this additional level since they could get godly loot at level 1 otherwise.
-            if (ErenshorREL.RandomLootLevelsAbove.Value > levelsAboveHardcap) { ErenshorREL.RandomLootLevelsAbove.Value = levelsAboveHardcap; }
-            if (ErenshorREL.RandomLootCommonNPCChance.Value < 0.0f) { ErenshorREL.RandomLootCommonNPCChance.Value = 0.0f; }
-            if (ErenshorREL.RandomLootCommonNPCChance.Value > 100.0f) { ErenshorREL.RandomLootCommonNPCChance.Value = 100.0f; }
-            if (ErenshorREL.RandomLootRareNPCChance.Value < 0.0f) { ErenshorREL.RandomLootRareNPCChance.Value = 0.0f; }
-            if (ErenshorREL.RandomLootRareNPCChance.Value > 100.0f) { ErenshorREL.RandomLootRareNPCChance.Value = 100.0f; }
-            if ((ErenshorREL.RandomLootText.Value == "") || (ErenshorREL.RandomLootText.Value is null)) { ErenshorREL.RandomLootText.Value = "Mysterious forces have added a new treasure: "; }
-            Config.Save();
+
         }
 
         private void SetupWatcher()
@@ -92,8 +81,42 @@ namespace ErenshorREL
             if (!File.Exists(ConfigFileFullPath)) return;
             try
             {
-                ErenshorRELLogger.LogDebug("ReadConfigValues called");
+                //ErenshorRELLogger.LogDebug("ReadConfigValues called");
                 Config.Reload();
+                Config.SaveOnConfigSet = true;
+
+                // Enforce values
+                int maxCurLevel = 0;
+                // Find the maximum level across all save slots
+                foreach (var saveSlot in GameData.SaveSlots)
+                {
+                    if (saveSlot.CharLevel > maxCurLevel)
+                    {
+                        maxCurLevel = saveSlot.CharLevel;
+                    }
+                }
+
+                // Apply the hard cap logic
+                int levelsAboveHardcap = 4;
+                if (maxCurLevel > levelsAboveHardcap)
+                {
+                    levelsAboveHardcap = maxCurLevel; // Adjust hardcap to the maximum current character level
+                }
+
+                //check config values and limit the range
+                if (ErenshorREL.RandomLootLevelsBelow.Value < 0) { ErenshorREL.RandomLootLevelsBelow.Value = 0; }
+                if (ErenshorREL.RandomLootLevelsBelow.Value > 100) { ErenshorREL.RandomLootLevelsBelow.Value = 100; }
+                if (ErenshorREL.RandomLootLevelsAbove.Value < 0) { ErenshorREL.RandomLootLevelsAbove.Value = 0; }
+                //don't allow users to configure item levels above this additional level since they could get godly loot at level 1 otherwise.
+                if (ErenshorREL.RandomLootLevelsAbove.Value > levelsAboveHardcap) { ErenshorREL.RandomLootLevelsAbove.Value = levelsAboveHardcap; }
+                if (ErenshorREL.RandomLootCommonNPCChance.Value < 0.0f) { ErenshorREL.RandomLootCommonNPCChance.Value = 0.0f; }
+                if (ErenshorREL.RandomLootCommonNPCChance.Value > 100.0f) { ErenshorREL.RandomLootCommonNPCChance.Value = 100.0f; }
+                if (ErenshorREL.RandomLootRareNPCChance.Value < 0.0f) { ErenshorREL.RandomLootRareNPCChance.Value = 0.0f; }
+                if (ErenshorREL.RandomLootRareNPCChance.Value > 100.0f) { ErenshorREL.RandomLootRareNPCChance.Value = 100.0f; }
+                if ((ErenshorREL.RandomLootText.Value == "") || (ErenshorREL.RandomLootText.Value is null)) { ErenshorREL.RandomLootText.Value = "Mysterious forces have added a new treasure: "; }
+                //only allow a list of itemIDs in the filters
+                if ((ErenshorREL.ContainsLetter(ErenshorREL.RandomLootRestrict.Value)) || (ErenshorREL.RandomLootRestrict.Value is null)) { ErenshorREL.RandomLootText.Value = "2387160,45610186,45610186,14619076"; }
+
             }
             catch
             {
@@ -102,6 +125,10 @@ namespace ErenshorREL
             }
         }
 
+        private static bool ContainsLetter(string input)
+        {
+            return Regex.IsMatch(input, "[a-zA-Z]");
+        }
 
         #region ConfigOptions
 
@@ -114,6 +141,7 @@ namespace ErenshorREL
         //internal static ConfigEntry<Toggle> RandomLootRestrict = null!;
         internal static ConfigEntry<Toggle> RandomLootDebug = null!;
         //internal static ConfigEntry<KeyboardShortcut> RandomLootKey = null!;
+        internal static ConfigEntry<string> RandomLootRestrict = null!;
         internal static bool _configApplied;
 
         internal ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description)
@@ -186,6 +214,9 @@ namespace ErenshorREL
                                 if (itemsAtLevel != null && itemsAtLevel.Count > 0)
                                 {
                                     writer.WriteLine($"{itemsAtLevel.Count} Items at level {level}:");
+                                    // writer.WriteLine($"ID|Name|Relic|Unique|Classes|Slot|Value|AC|");
+                                    writer.WriteLine($"ID|Name|Relic|Unique|Classes|Slot|Value|AC|HP|Mana|WeaponDmg|WeaponDly|Str|End|Dex|Agi|Int|Wis|Cha|Res|MR|ER|PR|VR|TeachSpell|ItemEffectOnClick|WeaponProcOnHit|ItemSkillUse|WeaponProcChance|TeachSkill|SpellCastTime|HideHairWhenEquipped|HideHeadWhenEquipped|Stackable|Disposable|AssignQuestOnRead|CompleteOnRead|Mining|FuelSource|Template|Aura|WornEffect|");
+
                                     foreach (Item item in itemsAtLevel)
                                     {
                                         string strClasses = "";
@@ -193,7 +224,8 @@ namespace ErenshorREL
                                         {
                                             strClasses = strClasses + " " + itemClass.name;
                                         }
-                                        writer.WriteLine($"- ID:{item.Id} {item.ItemName} Relic:{item.Relic} Unique:{item.Unique} Classes:{strClasses} Slot:{item.RequiredSlot.ToString()} Value:{item.ItemValue}");
+                                        //writer.WriteLine($"{item.Id}|{item.ItemName}|{item.Relic}|{item.Unique}|{strClasses}|{item.RequiredSlot.ToString()}|{item.ItemValue}|{item.AC}|");
+                                        writer.WriteLine($"{item.Id}|{item.ItemName}|{item.Relic}|{item.Unique}|{strClasses}|{item.RequiredSlot.ToString()}|{item.ItemValue}|{item.AC}|{item.HP}|{item.Mana}|{item.WeaponDmg}|{item.WeaponDly}|{item.Str}|{item.End}|{item.Dex}|{item.Agi}|{item.Int}|{item.Wis}|{item.Cha}|{item.Res}|{item.MR}|{item.ER}|{item.PR}|{item.VR}|{item.TeachSpell}|{item.ItemEffectOnClick}|{item.WeaponProcOnHit}|{item.ItemSkillUse}|{item.WeaponProcChance}|{item.TeachSkill}|{item.SpellCastTime}|{item.HideHairWhenEquipped}|{item.HideHeadWhenEquipped}|{item.Stackable}|{item.Disposable}|{item.AssignQuestOnRead}|{item.CompleteOnRead}|{item.Mining}|{item.FuelSource}|{item.Template}|{item.Aura}|{item.WornEffect}|");
                                     }
                                 }
                             }
@@ -238,22 +270,6 @@ namespace ErenshorREL
                             int NPCMaxItemDrops = 0;
                             int NPCMaxNonCommonDrops = 0;
                             int NPCActualDrops = 0;
-
-                            /*
-                            //moved this block to the update section:
-                            int levelsAboveHardcap = 4;
-                            //check config values and limit the range
-                            if (ErenshorREL.RandomLootLevelsBelow.Value < 0) { ErenshorREL.RandomLootLevelsBelow.Value = 0; }
-                            if (ErenshorREL.RandomLootLevelsBelow.Value > 100) { ErenshorREL.RandomLootLevelsBelow.Value = 100; }
-                            if (ErenshorREL.RandomLootLevelsAbove.Value < 0) { ErenshorREL.RandomLootLevelsAbove.Value = 0; }
-                            //don't allow users to configure item levels above this additional level since they could get godly loot at level 1 otherwise.
-                            if (ErenshorREL.RandomLootLevelsAbove.Value > levelsAboveHardcap) { ErenshorREL.RandomLootLevelsAbove.Value = levelsAboveHardcap; }
-                            if (ErenshorREL.RandomLootCommonNPCChance.Value < 0.0f) { ErenshorREL.RandomLootCommonNPCChance.Value = 0.0f; }
-                            if (ErenshorREL.RandomLootCommonNPCChance.Value > 100.0f) { ErenshorREL.RandomLootCommonNPCChance.Value = 100.0f; }
-                            if (ErenshorREL.RandomLootRareNPCChance.Value < 0.0f) { ErenshorREL.RandomLootRareNPCChance.Value = 0.0f; }
-                            if (ErenshorREL.RandomLootRareNPCChance.Value > 100.0f) { ErenshorREL.RandomLootRareNPCChance.Value = 100.0f; }
-                            if ((ErenshorREL.RandomLootText.Value == "") || (ErenshorREL.RandomLootText.Value is null)) { ErenshorREL.RandomLootText.Value = "Mysterious forces have added a new treasure: "; }
-                            */
 
                             //Is the NPC rare?
                             //check NPC loot table for how many rare items it can possibly drop

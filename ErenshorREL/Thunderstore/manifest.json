@@ -1,6 +1,6 @@
 {
     "name": "ErenshorREL",
-    "version_number": "0.0.2",
+    "version_number": "0.0.3",
     "website_url": "https://github.com/Brumdail/ErenshorREL",
     "description": "Erenshor Random Epic Loot Mod based on BepInEx. Get similar level random loot from enemies! (Not available for the Demo)",
     "dependencies": [
